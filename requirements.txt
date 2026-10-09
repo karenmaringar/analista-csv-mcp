@@ -1,0 +1,7 @@
+langchain
+langchain-google-genai
+python-dotenv
+langchain-mcp-adapters
+mcp<2          # langchain-mcp-adapters no es compatible con mcp 2.x
+pandas
+pytest
