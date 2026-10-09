@@ -6,9 +6,9 @@ from aplicacion.servicio_analisis import ServicioAnalisis
 from dominio.errores import ErrorDominio
 
 
-def crear_servidor(servicio: ServicioAnalisis) -> FastMCP:
+def crear_servidor(servicio: ServicioAnalisis, **opciones) -> FastMCP:
     """Adaptador de entrada: expone los casos de uso del servicio como Tools MCP."""
-    mcp = FastMCP("AnalistaCSV")
+    mcp = FastMCP("AnalistaCSV", **opciones)
 
     def _ejecutar(accion) -> str:
         """Red de seguridad: convierte cualquier error en un texto, sin detener el servidor."""

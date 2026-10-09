@@ -1,6 +1,7 @@
 import asyncio
 import os
 import sys
+from typing import Any
 
 from dotenv import load_dotenv
 from langchain.agents import create_agent
@@ -30,15 +31,28 @@ Reglas:
 
 async def main() -> None:
     # ---------- MCP: conectar con el servidor ----------
-    cliente = MultiServerMCPClient({
-        "analista_csv": {
-            "command": sys.executable,       # el Python de tu venv
-            "args": [RUTA_SERVIDOR],         # lanza servidor.py
-            "transport": "stdio",
+    conexion: Any                               # evita el aviso de Pylance
+    url_mcp = os.getenv("MCP_URL")
+    if url_mcp:
+        # Servidor REMOTO (HTTP) protegido con token
+        conexion = {
+            "transport": "streamable_http",
+            "url": url_mcp,
+            "headers": {"Authorization": f"Bearer {os.getenv('MCP_TOKEN', '')}"},
         }
-    })
+        modo = f"remoto: {url_mcp}"
+    else:
+        # Servidor LOCAL (stdio): el agente lo lanza como proceso hijo
+        conexion = {
+            "transport": "stdio",
+            "command": sys.executable,           # el Python de tu venv
+            "args": [RUTA_SERVIDOR],             # lanza servidor.py
+        }
+        modo = "local (stdio)"
+
+    cliente = MultiServerMCPClient({"analista_csv": conexion})
     tools = await cliente.get_tools()
-    print("Tools cargadas desde el servidor MCP:", [t.name for t in tools])
+    print(f"Tools cargadas desde el servidor MCP ({modo}):", [t.name for t in tools])
 
     # ---------- MODELO: Gemini ----------
     llm = ChatGoogleGenerativeAI(model=MODELO, timeout=120, max_retries=4)
@@ -48,7 +62,7 @@ async def main() -> None:
         model=llm,
         tools=tools,
         system_prompt=SYSTEM_PROMPT,
-        checkpointer=InMemorySaver(),        # la memoria de la conversación
+        checkpointer=InMemorySaver(),            # la memoria de la conversación
     )
     config: RunnableConfig = {"configurable": {"thread_id": "conversacion-1"}}
 
